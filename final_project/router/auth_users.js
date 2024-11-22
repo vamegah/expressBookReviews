@@ -7,6 +7,10 @@ let users = [];
 
 const isValid = (username) => { //returns boolean
     //write code to check is the username is valid
+    const validusers = users.filter((user) => {
+        return user.username === username;
+    });
+
 }
 
 const authenticatedUser = (username, password) => { //returns boolean
@@ -54,7 +58,36 @@ regd_users.post("/login", (req, res) => {
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
     //Write your code here
-    return res.status(300).json({ message: "Yet to be implemented" });
+    // Extract the ISBN and review details from the request
+    const isbn = req.params.isbn;
+    const { review } = req.query;
+
+    // Ensure the user is authenticated and get their username (from the session)
+    const username = req.session.authorization.username; // Assuming session contains `username`
+    if (!username) {
+        return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+
+    // Check if the book with the given ISBN exists
+    if (!books[isbn]) {
+        return res.status(404).json({ message: `Book with ISBN ${isbn} not found.` });
+    }
+
+    // Check if the `review` query parameter is provided
+    if (!review) {
+        return res.status(400).json({ message: "Review content must be provided." });
+    }
+
+    // Initialize the reviews object if it doesn't exist
+    if (!books[isbn].reviews) {
+        books[isbn].reviews = {};
+    }
+
+    // Add or update the review for the given user
+    books[isbn].reviews[username] = review;
+
+    // Respond with success
+    return res.status(200).send(books[isbn].reviews);
 });
 
 module.exports.authenticated = regd_users;
