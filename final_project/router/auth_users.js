@@ -15,8 +15,8 @@ const isValid = (username) => { //returns boolean
 
 const authenticatedUser = (username, password) => { //returns boolean
     //write code to check if username and password match the one we have in records.
-     // Filter the users array for any user with the same username and password
-     let validusers = users.filter((user) => {
+    // Filter the users array for any user with the same username and password
+    let validusers = users.filter((user) => {
         return (user.username === username && user.password === password);
     });
     // Return true if any valid user is found, otherwise false
@@ -63,7 +63,7 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
     const { review } = req.query;
 
     // Ensure the user is authenticated and get their username (from the session)
-    const username = req.session.authorization.username; // Assuming session contains `username`
+    const username = req.session?.username; // Assuming session contains `username`
     if (!username) {
         return res.status(401).json({ message: "Unauthorized. Please log in." });
     }
@@ -87,7 +87,11 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
     books[isbn].reviews[username] = review;
 
     // Respond with success
-    return res.status(200).send(books[isbn].reviews);
+    return res.status(200).json({
+        success: true,
+        message: `Review for book with ISBN ${isbn} added/updated successfully.`,
+        reviews: books[isbn].reviews,
+    });
 });
 
 module.exports.authenticated = regd_users;
