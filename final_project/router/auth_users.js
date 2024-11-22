@@ -11,20 +11,18 @@ const isValid = (username) => { //returns boolean
         return user.username === username;
     });
 
+    return validusers.length === 0;
+
 }
 
 const authenticatedUser = (username, password) => { //returns boolean
     //write code to check if username and password match the one we have in records.
     // Filter the users array for any user with the same username and password
-    let validusers = users.filter((user) => {
+    let authenticatedUsers = users.filter((user) => {
         return (user.username === username && user.password === password);
     });
     // Return true if any valid user is found, otherwise false
-    if (validusers.length > 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return authenticatedUsers.length !== 0;
 }
 
 //only registered users can login
@@ -56,42 +54,45 @@ regd_users.post("/login", (req, res) => {
 });
 
 // Add a book review
+// Add or modify a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-    //Write your code here
     // Extract the ISBN and review details from the request
     const isbn = req.params.isbn;
-    const { review } = req.query;
+    const review = req.body.review;
+    const username = req.session.authorization.username;
 
-    // Ensure the user is authenticated and get their username (from the session)
-    const username = req.session?.username; // Assuming session contains `username`
-    if (!username) {
-        return res.status(401).json({ message: "Unauthorized. Please log in." });
-    }
-
-    // Check if the book with the given ISBN exists
-    if (!books[isbn]) {
+    let validBook = books[isbn];
+    if (validBook) {
+        const reviews = validBook.reviews;
+        const existingReview = reviews[username];
+        reviews[username] = review;
+        if (existingReview) {
+            return res.status(200).send({ message: `Review for book with ISBN ${isbn} updated successfully.` });
+        } else {
+            return res.status(200).send({ message: `Review for book with ISBN ${isbn} added successfully.` });
+        }
+    } else {
         return res.status(404).json({ message: `Book with ISBN ${isbn} not found.` });
     }
+});
 
-    // Check if the `review` query parameter is provided
-    if (!review) {
-        return res.status(400).json({ message: "Review content must be provided." });
+
+// Remove a book review
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+    //Write your code here
+    const isbn = req.params.isbn;
+    const username = req.session.authorization.username;
+    let validBook = books[isbn];
+
+    if (validBook) {
+        const existingReview = validBook.reviews[username];
+        if (existingReview) {
+            delete validBook.reviews[username];
+        }
+        return res.status(200).send({ message: `Review for book with ISBN ${isbn} updated successfully.` });
+    } else {
+        return res.status(404).json({ message: `Book with ISBN ${isbn} not found.` });
     }
-
-    // Initialize the reviews object if it doesn't exist
-    if (!books[isbn].reviews) {
-        books[isbn].reviews = {};
-    }
-
-    // Add or update the review for the given user
-    books[isbn].reviews[username] = review;
-
-    // Respond with success
-    return res.status(200).json({
-        success: true,
-        message: `Review for book with ISBN ${isbn} added/updated successfully.`,
-        reviews: books[isbn].reviews,
-    });
 });
 
 module.exports.authenticated = regd_users;
